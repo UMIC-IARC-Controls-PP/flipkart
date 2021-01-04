@@ -23,6 +23,7 @@ def callback(value):
 
 
 def cam_frame(data):
+	rate = rospy.Rate(10)
 	bridge = CvBridge()
 	img = bridge.imgmsg_to_cv2(data, "bgr8")
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -90,40 +91,54 @@ def cam_frame(data):
 					fy=(y1+y2+y3+y4)/4
 					fz=(z1+z2+z3+z4)/4
 
-					point = Point()
-					point.x = gx
-					point.y = gy
-					point.z = gz
-					if(3.9<x<4.1):
-						col[0] = point
-					elif(3.9<x<4.1):
-						col[1] = point
-					elif(3.9<x<4.1):
-						col[2] = point
-					elif(3.9<x<4.1):
-						col[3] = point
-					elif(3.9<x<4.1):
-						col[4] = point
-					elif(3.9<x<4.1):
-						col[5] = point
-					elif(3.9<x<4.1):
-						col[6] = point
-					elif(3.9<x<4.1):
-						col[7] = point
-					elif(3.9<x<4.1):
-						col[8] = point
-					elif(3.9<x<4.1):
-						col[9] = point
-					elif(3.9<x<4.1):
-						col[10] = point
-					elif(3.9<x<4.1):
-						col[11] = point
-					elif(3.9<x<4.1):
-						col[12] = point
-					elif(3.9<x<4.1):
-						col[13] = point
-					elif(3.9<x<4.1):
-						col[14] = point
+					ps = PointStamped()
+					ps.header.frame_id = "r200link"
+					ps.header.stamp = rospy.Time(0)
+					ps.point.x = fx
+					ps.point.y = fy
+					ps.point.z = fz
+					mat = listener.transformPoint("/world", ps)
+					rospy.loginfo(mat)
+
+					if(3.265<mat.z<3.285):
+						# point = Point()
+						# point.x = mat.x
+						# point.y = mat.y
+						# point.z = mat.z
+						if(3.9<mat.x<4.1):
+							col[0] = mat
+						elif(4.9<mat.x<5.1):
+							col[1] = mat
+						elif(5.9<mat.x<6.1):
+							col[2] = mat
+						elif(6.9<mat.x<7.1):
+							col[3] = mat
+						elif(7.9<mat.x<8.1):
+							col[4] = mat
+						elif(8.9<mat.x<9.1):
+							col[5] = mat
+						elif(9.9<mat.x<10.1):
+							col[6] = mat
+						elif(10.9<mat.x<11.1):
+							col[7] = mat
+						elif(11.9<mat.x<12.1):
+							col[8] = mat
+						elif(12.9<mat.x<13.1):
+							col[9] = mat
+						elif(13.9<mat.x<14.1):
+							col[10] = mat
+						elif(14.9<mat.x<15.1):
+							col[11] = mat
+						elif(15.9<mat.x<16.1):
+							col[12] = mat
+						elif(16.9<mat.x<17.1):
+							col[13] = mat
+						elif(17.9<mat.x<18.1):
+							col[14] = mat
+						frame_list.centers = col
+						pub.publish(frame_list)
+						rate.sleep()
+
 
 
 	cv2.imshow('image',img)
@@ -133,6 +148,8 @@ def cam_frame(data):
 
 if __name__ == '__main__':
 	rospy.init_node('world_coordinate', anonymous=True)
+	global frame_list
+	global col
 	frame_list = frame()
 	point = Point()
 	point.x = 0.0
