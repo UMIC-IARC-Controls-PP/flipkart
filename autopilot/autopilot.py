@@ -24,6 +24,7 @@ import sensor_msgs.point_cloud2 as pc2
 import ctypes
 import struct
 import tf2_ros
+from frame_detection.msg import frame
 
 class autopilot:
 	
@@ -34,19 +35,22 @@ class autopilot:
 		'''
 		self.currentframe = 0
 		self.nextframe = 1
-
 		self.rate = rospy.Rate(20.0)
-		rospy.Subscriber('/mavros/global_position/local', Odometry, self.poseCallback)
+		self.framecount = 0
+		self.wplist = []
 		rospy.Subscriber('/frame_center/position', frame, self.detectFrames)
-
+		rospy.Subscriber('/mavros/global_position/local', Odometry, self.poseCallback)
+		print("Class Instantiated with Subscribers")
+		self.mvc = mavcon()
 
 	def detectFrames(self, msg):	
-		self.wplist = []
 		self.wplist = msg.centers
-		self.firstframex = self.wplist[0][0]
+		self.firstframex = msg.centers[0].x
 
 	def getFrameNum(self): 
-		if ((self.currentposex > self.firstframex) and (self.currentposex < self.firstframex + 1)) :
+		if (self.currentposex < self.firstframex) :
+			self.currentframe = 0
+		elif ((self.currentposex > self.firstframex) and (self.currentposex < self.firstframex + 1)) :
 			self.currentframe = 1
 		elif ((self.currentposex > (self.firstframex + 1)) and (self.currentposex < (self.firstframex + 2))) :
 			self.currentframe = 2
@@ -76,22 +80,43 @@ class autopilot:
 			self.currentframe = 14
 		elif ((self.currentposex > (self.firstframex + 14)) and (self.currentposex < (self.firstframex + 15))) :
 			self.currentframe = 15
+		print("Frame Classified according to Position")
+
 
 	def incrementCurrentFrame(self):
 		self.framecount = self.framecount + 1
 
 	def explore(self):
+		global mvc
 		exploretimestart = time.time()
 		self.nextframe = self.currentframe + 1
-		nextframex, nextframey, nextframez = self.wplist[self.nextframe - 1][0], self.wplist[self.nextframe - 1][1], self.wplist[self.nextframe - 1][2]  
-		mvc.gotopose(nextframex - 0.5, nextframey, nextframez)
-		rospy.sleep(5)
-		rate.sleep()
+		nextframex, nextframey, nextframez = self.wplist[self.framecount].x, self.wplist[self.framecount].y, self.wplist[self.framecount].z  
+		
+		if ((nextframex == 0) and (nextframey == 0) and (nextframez == 0)):
+			if self.currentposey < 0:
+				self.mvc.gotopose(self.currentposex, self.currentposey + 1, 3.275)
+				print("reexploring")
+				self.explore()
+
+			if self.currentposey > 0:
+				self.mvc.gotopose(self.currentposex, self.currentposey - 1, 3.275)
+				print("reexploring")
+				self.explore()
+		else:
+			self.mvc.gotopose(nextframex - 0.5, nextframey, nextframez)
+			print("No need to reexplore")
+
+
+			
+		
+		#rate.sleep()
+
 		exploretimeend = time.time()
-		print("Explore Computation Time = ", exploretimeend - exploretimestart)
+		print("Explore Computation Time = ", exploretimeend - exploretimestart, "seconds")
 
 	def poseCallback(self, msg):
 		self.currentposex = msg.pose.pose.position.x
+		self.currentposey = msg.pose.pose.position.y
 	
 	'''
 	def planner(self, pointlist):
@@ -109,22 +134,24 @@ def main():
 	rospy.init_node('autopilot')
 	atplt = autopilot()
 	mvc = mavcon()
-
 	mvc.setarm(1)
 	time.sleep(2)
 	mvc.offboard()
-	mvc.gotopose(0, 0, 3)
-
+	mvc.gotopose(0, 0, 3.275)
+	i = 0
 	while i < 15:
 		atplt.explore()
 		atplt.getFrameNum()
-		gotopose(wplist[i][0] - 0.5, wplist[i][1], wplist[i][2])
-		gotopose(wplist[i][0], wplist[i][1], wplist[i][2])
-		self.incrementCurrentFrame()
-		gotopose(wplist[i][0] + 0.5, wplist[i][1], wplist[i][2])
-		print("Passed through frame ", self.currentframe)
+		mvc.gotopose(atplt.wplist[i].x - 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
+		mvc.gotopose(atplt.wplist[i].x, atplt.wplist[i].y, atplt.wplist[i].z)
+		atplt.incrementCurrentFrame()
+		mvc.gotopose(atplt.wplist[i].x + 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
+		print("Passed through frame ", atplt.currentframe)
+		atplt.currentframe += 1
+		i += 1
 
 	maintimeend = time.time()
+	print("Total Time in Minutes = ", (maintimeend-maintimestart)/60)
 	rospy.spin()
 
 

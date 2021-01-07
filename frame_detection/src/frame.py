@@ -23,6 +23,8 @@ def callback(value):
 
 
 def cam_frame(data):
+	global val
+	start = time.time()
 	rate = rospy.Rate(10)
 	bridge = CvBridge()
 	img = bridge.imgmsg_to_cv2(data, "bgr8")
@@ -62,6 +64,8 @@ def cam_frame(data):
 				a2,b2 = box[1][0]-4,box[1][1]+4
 				a3,b3 = box[2][0]+4,box[2][1]+4
 				a4,b4 = box[3][0]+4,box[3][1]-4
+				i = 0
+				global val
 				for p in pc2.read_points(val, field_names = ("x", "y", "z"), skip_nans=False):
 					if (i==(640*(b1-1))+a1):
 						x1,y1,z1 = p[0],p[1],p[2]
@@ -86,18 +90,34 @@ def cam_frame(data):
 						break
 					i+=1
 				i=0
+				
+				fx=(x1+x2+x3+x4)/4
+				fy=(y1+y2+y3+y4)/4
+				fz=(z1+z2+z3+z4)/4
+				ps = PointStamped()
+				ps.header.frame_id = "/camera_link"
+				ps.header.stamp = rospy.Time(0)
+				ps.point.x = fx
+				ps.point.y = fy
+				ps.point.z = fz
+				mat = listener.transformPoint("/world", ps)
+				print(mat)
+				rospy.loginfo(mat)
+
+
 				if (np.abs(z1-z2)<0.3 and np.abs(z2-z3)<0.3 and np.abs(z3-z4)<0.3 and np.abs(z1-z4)<0.3):
 					fx=(x1+x2+x3+x4)/4
 					fy=(y1+y2+y3+y4)/4
 					fz=(z1+z2+z3+z4)/4
 
 					ps = PointStamped()
-					ps.header.frame_id = "r200link"
+					ps.header.frame_id = "/camera_link"
 					ps.header.stamp = rospy.Time(0)
 					ps.point.x = fx
 					ps.point.y = fy
 					ps.point.z = fz
 					mat = listener.transformPoint("/world", ps)
+					print(mat)
 					rospy.loginfo(mat)
 
 					if(3.265<mat.z<3.285):
@@ -140,7 +160,8 @@ def cam_frame(data):
 						rate.sleep()
 
 
-
+	end = time.time()
+	print(end - start)
 	cv2.imshow('image',img)
 	cv2.waitKey(30)
 
@@ -150,14 +171,16 @@ if __name__ == '__main__':
 	rospy.init_node('world_coordinate', anonymous=True)
 	global frame_list
 	global col
+	global val
 	frame_list = frame()
 	point = Point()
 	point.x = 0.0
 	point.y = 0.0
 	point.z = 0.0
 	col = [point]*15
+	print(col)
 	frame_list.centers = col
-	rospy.Subscriber("/r200/rgb/image_raw", Image, cam_frame)
-	rospy.Subscriber("/r200/depth/points", PointCloud2, callback)
-	pub = rospy.Publisher('frame_center/position', frame, queue_size=100)
+	rospy.Subscriber("/camera/depth/points", PointCloud2, callback)
+	rospy.Subscriber("/camera/rgb/image_raw", Image, cam_frame)
+	pub = rospy.Publisher('/frame_center/position', frame, queue_size=100)
 	rospy.spin()
