@@ -67,7 +67,7 @@ def pixel_to_depth(h,w,depth_array):
 
 
 def cam_frame(data):
-	rate = rospy.Rate(10)
+	#rate = rospy.Rate(10)
 	bridge = CvBridge()
 	img = bridge.imgmsg_to_cv2(data, "bgr8")
 	hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
@@ -105,7 +105,6 @@ def cam_frame(data):
 			height = box[0][1]-box[1][1]
 			if (width<630 and (width/height < 3) and (height/width < 1.5) and (box[0][1] < 476) and (box[3][1] < 476)):
 				imgs = cv2.drawContours(img, [box], 0, (0,0,255), 2)
-				#print('contours drawn')
 				a1,b1 = box[0][0]-2,box[0][1]-2
 				a2,b2 = box[1][0]-2,box[1][1]+2
 				a3,b3 = box[2][0]+2,box[2][1]+2
@@ -120,7 +119,6 @@ def cam_frame(data):
 				mat3 = pixel_to_depth(b3,a3,depth_array)
 				mat4 = pixel_to_depth(b4,a4,depth_array)
 
-				#print('for loop complete')
 				fx=(mat1.point.x+mat2.point.x+mat3.point.x+mat4.point.x)/4
 				fy=(mat1.point.y+mat2.point.y+mat3.point.y+mat4.point.y)/4
 				fz=(mat1.point.z+mat2.point.z+mat3.point.z+mat4.point.z)/4
@@ -165,14 +163,12 @@ def cam_frame(data):
 							col[14] = loc
 						#print(col,'dfsdjfksbdfhjsbfsdjk')
 						frame_list.centers = col
-	
-	
+
+
 	cv2.imshow('image',img)
 	cv2.waitKey(30)
 	pub.publish(frame_list)
-	rate.sleep()
-
-
+	#rate.sleep()
 
 
 if __name__ == '__main__':

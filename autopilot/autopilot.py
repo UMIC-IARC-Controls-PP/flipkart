@@ -24,113 +24,99 @@ import sensor_msgs.point_cloud2 as pc2
 import ctypes
 import struct
 import tf2_ros
+from frame_detection.msg import frame
 
 class autopilot:
 	
 	def __init__(self):
+		'''
 		self.isright = False
 		self.isleft = False
+		'''
 		self.currentframe = 0
 		self.nextframe = 1
-		self.framecount = 0
-		
-		self.currentposex = 0
-		self.currentposey = 0
-		self.currentposez = 0
-		self.currentoreox = 0
-		self.currentoreoy = 0
-		self.currentoreoz = 0
-		self.currentoreow = 1
-		
-
 		self.rate = rospy.Rate(20.0)
+		self.framecount = 0
+		self.wplist = []
+		rospy.Subscriber('/frame_center/position', frame, self.detectFrames)
 		rospy.Subscriber('/mavros/global_position/local', Odometry, self.poseCallback)
+		print("Class Instantiated with Subscribers")
+		self.mvc = mavcon()
 
+	def detectFrames(self, msg):	
+		self.wplist = msg.centers
+		self.firstframex = msg.centers[0].x
 
-	def detectFrames(self):		# Output is self.detectedframe.x/y/z
-		pass
-
-	def checkFrame(self):		# Output is self.checkedframe.x/y/z
-		pass 
-
-	def getFrameNum(self):
-		if ((self.currentpose.x > 1) and (self.currentpose.x < 2)) :
+	def getFrameNum(self): 
+		if (self.currentposex < self.firstframex) :
+			self.currentframe = 0
+		elif ((self.currentposex > self.firstframex) and (self.currentposex < self.firstframex + 1)) :
 			self.currentframe = 1
-		elif ((self.currentpose.x > 2) and (self.currentpose.x < 3)) :
+		elif ((self.currentposex > (self.firstframex + 1)) and (self.currentposex < (self.firstframex + 2))) :
 			self.currentframe = 2
-		elif ((self.currentpose.x > 3) and (self.currentpose.x < 4)) :
+		elif ((self.currentposex > (self.firstframex + 2)) and (self.currentposex < (self.firstframex + 3))) :
 			self.currentframe = 3
-		elif ((self.currentpose.x > 4) and (self.currentpose.x < 5)) :
+		elif ((self.currentposex > (self.firstframex + 3)) and (self.currentposex < (self.firstframex + 4))) :
 			self.currentframe = 4
-		elif ((self.currentpose.x > 5) and (self.currentpose.x < 6)) :
+		elif ((self.currentposex > (self.firstframex + 4)) and (self.currentposex < (self.firstframex + 5))) :
 			self.currentframe = 5
-		elif ((self.currentpose.x > 6) and (self.currentpose.x < 7)) :
+		elif ((self.currentposex > (self.firstframex + 5)) and (self.currentposex < (self.firstframex + 6))) :
 			self.currentframe = 6
-		elif ((self.currentpose.x > 7) and (self.currentpose.x < 8)) :
+		elif ((self.currentposex > (self.firstframex + 6)) and (self.currentposex < (self.firstframex + 7))) :
 			self.currentframe = 7
-		elif ((self.currentpose.x > 8) and (self.currentpose.x < 9)) :
+		elif ((self.currentposex > (self.firstframex + 7)) and (self.currentposex < (self.firstframex + 8))) :
 			self.currentframe = 8
-		elif ((self.currentpose.x > 9) and (self.currentpose.x < 10)) :
+		elif ((self.currentposex > (self.firstframex + 8)) and (self.currentposex < (self.firstframex + 9))) :
 			self.currentframe = 9
-		elif ((self.currentpose.x > 10) and (self.currentpose.x < 11)) :
+		elif ((self.currentposex > (self.firstframex + 9)) and (self.currentposex < (self.firstframex + 10))) :
 			self.currentframe = 10
-		elif ((self.currentpose.x > 11) and (self.currentpose.x < 12)) :
+		elif ((self.currentposex > (self.firstframex + 10)) and (self.currentposex < (self.firstframex + 11))) :
 			self.currentframe = 11
-		elif ((self.currentpose.x > 12) and (self.currentpose.x < 13)) :
+		elif ((self.currentposex > (self.firstframex + 11)) and (self.currentposex < (self.firstframex + 12))) :
 			self.currentframe = 12
-		elif ((self.currentpose.x > 13) and (self.currentpose.x < 14)) :
+		elif ((self.currentposex > (self.firstframex + 12)) and (self.currentposex < (self.firstframex + 13))) :
 			self.currentframe = 13
-		elif ((self.currentpose.x > 14) and (self.currentpose.x < 15)) :
+		elif ((self.currentposex > (self.firstframex + 13)) and (self.currentposex < (self.firstframex + 14))) :
 			self.currentframe = 14
-		elif ((self.currentpose.x > 15) and (self.currentpose.x < 16)) :
+		elif ((self.currentposex > (self.firstframex + 14)) and (self.currentposex < (self.firstframex + 15))) :
 			self.currentframe = 15
+		print("Frame Classified according to Position")
 
-		self.nextframe = self.currentframe + 1
-
-
-	def moveSideways(self, arg):
-		mavcon.gotopose(self.currentpose.x, arg, self.currentpose.z)
 
 	def incrementCurrentFrame(self):
 		self.framecount = self.framecount + 1
 
 	def explore(self):
-		self.frameposeerror.x = self.detectedframe.x - self.checkedframe.x
-		self.frameposeerror.y = self.detectedframe.y - self.checkedframe.y
-		self.frameposeerror.z = self.detectedframe.z - self.checkedframe.z
+		global mvc
+		exploretimestart = time.time()
+		self.nextframe = self.currentframe + 1
+		nextframex, nextframey, nextframez = self.wplist[self.framecount].x, self.wplist[self.framecount].y, self.wplist[self.framecount].z  
 		
-		while True:
-			
-			if self.currentpose.y - self.detectedframe.y > 0:
-				self.isright = True
-			if self.currentpose.y - self.detectedframe.y < 0:
-				self.isleft = True
+		if ((nextframex == 0) and (nextframey == 0) and (nextframez == 0)):
+			if self.currentposey < 0:
+				self.mvc.gotopose(self.currentposex, self.currentposey + 1, 3.275)
+				print("reexploring")
+				self.explore()
+
+			if self.currentposey > 0:
+				self.mvc.gotopose(self.currentposex, self.currentposey - 1, 3.275)
+				print("reexploring")
+				self.explore()
+		else:
+			self.mvc.gotopose(nextframex - 0.5, nextframey, nextframez)
+			print("No need to reexplore")
+
 
 			
-			if ((self.frameposeerror.x < 0.1) and (self.frameposeerror.y < 0.1) and (self.frameposeerror.z < 0.1)):
-				break
-			
-			else:
-				if isright:
-					self.moveSideways(self, self.detectedframe.y)
-					self.detectFrames()
-					self.checkFrame()
-				
-				elif isleft:
-					self.moveSideways(self, self.detectedframe.y)
-					self.detectFrames()
-					self.checkFrame()
+		
+		#rate.sleep()
 
-			rate.sleep()
+		exploretimeend = time.time()
+		print("Explore Computation Time = ", exploretimeend - exploretimestart, "seconds")
 
 	def poseCallback(self, msg):
 		self.currentposex = msg.pose.pose.position.x
 		self.currentposey = msg.pose.pose.position.y
-		self.currentposez = msg.pose.pose.position.z
-		self.currentoreox = msg.pose.pose.orientation.x
-		self.currentoreoy = msg.pose.pose.orientation.y
-		self.currentoreoz = msg.pose.pose.orientation.z
-		self.currentoreow = msg.pose.pose.orientation.w
 	
 	'''
 	def planner(self, pointlist):
@@ -141,39 +127,31 @@ class autopilot:
 			z = point[2]
 			self.path.append([x, y, z])
 		return self.path
-	'''
-
-	def givePoints(self, wp):
-		self.wpnew = []
-		point1 = [wp[0] - 0.5, wp[1], wp[2]]
-		point2 = [wp[0] - 0.5, wp[1], wp[2]]
-		point3 = [wp[0] - 0.5, wp[1], wp[2]]
-		self.wpnew.append(point1)
-		self.wpnew.append(point2)
-		self.wpnew.append(point3)
-		return self.wpnew
+	'''	
 
 def main():
+	maintimestart = time.time()
 	rospy.init_node('autopilot')
 	atplt = autopilot()
 	mvc = mavcon()
-
 	mvc.setarm(1)
 	time.sleep(2)
 	mvc.offboard()
-	mvc.gotopose(0, 0, 3)
-
-	while True:
-		atplt.detectFrames()
-		atplt.checkFrame()
+	mvc.gotopose(0, 0, 3.275)
+	i = 0
+	while i < 15:
 		atplt.explore()
-		wpnew = atplt.givePoints(wp)
 		atplt.getFrameNum()
-		gotopose(wpnew[0][0], wpnew[0][1], wpnew[0][2])
-		gotopose(wpnew[1][0], wpnew[1][1], wpnew[1][2])
-		gotopose(wpnew[2][0], wpnew[2][1], wpnew[2][2])
-		self.framecount += 1
+		mvc.gotopose(atplt.wplist[i].x - 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
+		mvc.gotopose(atplt.wplist[i].x, atplt.wplist[i].y, atplt.wplist[i].z)
+		atplt.incrementCurrentFrame()
+		mvc.gotopose(atplt.wplist[i].x + 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
+		print("Passed through frame ", atplt.currentframe)
+		atplt.currentframe += 1
+		i += 1
 
+	maintimeend = time.time()
+	print("Total Time in Minutes = ", (maintimeend-maintimestart)/60)
 	rospy.spin()
 
 
