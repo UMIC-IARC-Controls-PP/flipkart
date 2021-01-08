@@ -11,6 +11,19 @@ from sensor_msgs.msg import *
 from std_msgs.msg import *
 from geometry_msgs.msg import PointStamped, PoseStamped
 
+def scale_contour(cnt, scale):
+	M = cv2.moments(cnt)
+	if M['m00']==0:
+		return cnt
+	else:
+		cx = int(M['m10']/M['m00'])
+		cy = int(M['m01']/M['m00'])
+		cnt_norm = cnt - [cx, cy]
+		cnt_scaled = cnt_norm * scale
+		cnt_scaled = cnt_scaled + [cx, cy]
+		cnt_scaled = cnt_scaled.astype(np.int32)
+		return cnt_scaled
+
 vidcap = cv2.VideoCapture('/home/atharva/localisation/output.avi')
 success,frame = vidcap.read()
 while success:
@@ -31,8 +44,10 @@ while success:
 	upper_red = np.array([u_h, u_s, u_v])
 
 	mask = cv2.inRange(hsv, lower_red, upper_red)
-	kernel = np.ones((5, 5), np.uint8)
+	kernel = np.ones((3,3), np.uint8)
 	mask = cv2.dilate(mask, kernel)
+	kernel2 = np.ones((4,4), np.uint8)
+	mask = cv2.erode(mask, kernel2)
 
 	if int(cv2.__version__[0]) > 3:
 		contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -40,7 +55,8 @@ while success:
 		_, contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
 	for cnt in contours:
-		approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
+		cnt = scale_contour(cnt, 1.01)
+		#approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
 		area = cv2.contourArea(cnt)
 		if (150000 > area > 2000):
 			rect = cv2.minAreaRect(cnt)
@@ -52,6 +68,7 @@ while success:
 				img = cv2.drawContours(frame, [box], 0, (0,0,255), 2)
 
 	cv2.imshow('image',frame)
+	cv2.imshow('mask',mask)
 	cv2.waitKey(30)
 
 cv2.destroyAllWindows()
