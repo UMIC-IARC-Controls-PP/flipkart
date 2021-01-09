@@ -35,35 +35,36 @@ def scale_contour(cnt, scale):
 		return cnt_scaled
 
 def pixel_to_depth(h,w,depth_array):
-	f = 381.362467
-	ipp = np.array([[w],[h],[1]]) # 2d target coord 
-	b = np.array([[381.362467, 0.0, 320.5], [0.0, 381.362467, 240.5], [0.0, 0.0, 1]])
-	invk = np.linalg.inv(b)
-	rf = np.array([[0, 0, f], [-f, 0, 0], [0, -f, 0]]) # focal lenght matrix
-	invf = np.dot(rf, invk)
-	ipt = np.dot(invf,ipp) # 3d image plane target cood
-	(trans,rot) = lisn.lookupTransform("/world", "r200link", rospy.Time(0))
-	euler = tf.transformations.euler_from_quaternion(rot)
-	rm = tf.transformations.euler_matrix(euler[0],euler[1],euler[2])
-	wfrm = [[rm[0][0],rm[0][1],rm[0][2]],[rm[1][0],rm[1][1],rm[1][2]],[rm[2][0],rm[2][1],rm[2][2]]] # Transformation matrix for world frame
-	detipt = sqrt(ipt[0]**2 + ipt[1]**2 + ipt[2]**2) # magnitude of ipt
-	uipt = ipt/detipt
-	ls = np.array(np.dot(wfrm,uipt))
-	lr = np.array([1,0,0])
-	cos = np.dot(lr,ls)
-	h = depth_array[h,w]
-	d = h/cos
-	cord = d*(uipt) # 3d target coord in camera frame
-	#print(cord, 'in cam frame')
-	#print(h)
-	ps = PointStamped()
-	ps.header.frame_id = "r200link"
-	ps.header.stamp = rospy.Time(0)
-	ps.point.x = cord[0]
-	ps.point.y = cord[1]
-	ps.point.z = cord[2]
-	mat = listener.transformPoint("/world", ps)
-	return mat
+	if(h<480 and w<640):
+		f = 381.362467
+		ipp = np.array([[w],[h],[1]]) # 2d target coord 
+		b = np.array([[381.362467, 0.0, 320.5], [0.0, 381.362467, 240.5], [0.0, 0.0, 1]])
+		invk = np.linalg.inv(b)
+		rf = np.array([[0, 0, f], [-f, 0, 0], [0, -f, 0]]) # focal lenght matrix
+		invf = np.dot(rf, invk)
+		ipt = np.dot(invf,ipp) # 3d image plane target cood
+		(trans,rot) = lisn.lookupTransform("/world", "r200link", rospy.Time(0))
+		euler = tf.transformations.euler_from_quaternion(rot)
+		rm = tf.transformations.euler_matrix(euler[0],euler[1],euler[2])
+		wfrm = [[rm[0][0],rm[0][1],rm[0][2]],[rm[1][0],rm[1][1],rm[1][2]],[rm[2][0],rm[2][1],rm[2][2]]] # Transformation matrix for world frame
+		detipt = sqrt(ipt[0]**2 + ipt[1]**2 + ipt[2]**2) # magnitude of ipt
+		uipt = ipt/detipt
+		ls = np.array(np.dot(wfrm,uipt))
+		lr = np.array([1,0,0])
+		cos = np.dot(lr,ls)
+		h = depth_array[h,w]
+		d = h/cos
+		cord = d*(uipt) # 3d target coord in camera frame
+		#print(cord, 'in cam frame')
+		#print(h)
+		ps = PointStamped()
+		ps.header.frame_id = "r200link"
+		ps.header.stamp = rospy.Time(0)
+		ps.point.x = cord[0]
+		ps.point.y = cord[1]
+		ps.point.z = cord[2]
+		mat = listener.transformPoint("/world", ps)
+		return mat
 
 
 def cam_frame(data):
@@ -105,10 +106,10 @@ def cam_frame(data):
 			height = box[0][1]-box[1][1]
 			if (width<630 and (width/height < 3) and (height/width < 1.5) and (box[0][1] < 476) and (box[3][1] < 476)):
 				imgs = cv2.drawContours(img, [box], 0, (0,0,255), 2)
-				a1,b1 = box[0][0]-2,box[0][1]-2
-				a2,b2 = box[1][0]-2,box[1][1]+2
-				a3,b3 = box[2][0]+2,box[2][1]+2
-				a4,b4 = box[3][0]+2,box[3][1]-2
+				a1,b1 = box[0][0]-1,box[0][1]-1
+				a2,b2 = box[1][0]-1,box[1][1]+1
+				a3,b3 = box[2][0]+1,box[2][1]+1
+				a4,b4 = box[3][0]+1,box[3][1]-1
 
 				depth = val
 				bridged = CvBridge()
@@ -129,7 +130,7 @@ def cam_frame(data):
 				#print(mat1[2],mat2[2],mat3[2],mat4[2])
 				#print(mat4)
 				if (np.abs(mat1.point.z-mat2.point.z)<0.3 and np.abs(mat2.point.z-mat3.point.z)<0.3 and np.abs(mat3.point.z-mat4.point.z)<0.3 and np.abs(mat1.point.z-mat4.point.z)<0.3):
-					print(fx,fy,fz)
+					#print(loc)
 					if(3.0<fz<3.5):
 						if(3.9<fx<4.1):
 							col[0] = loc
@@ -161,7 +162,7 @@ def cam_frame(data):
 							col[13] = loc
 						elif(17.9<fx<18.1):
 							col[14] = loc
-						#print(col,'dfsdjfksbdfhjsbfsdjk')
+						print(col,'dfsdjfksbdfhjsbfsdjk')
 						frame_list.centers = col
 
 
