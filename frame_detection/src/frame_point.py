@@ -70,6 +70,7 @@ def cam_frame(data):
 	else:
 		_, contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
+	j = 0
 	for cnt in contours:
 		cnt = scale_contour(cnt, 1.01)
 		#approx = cv2.approxPolyDP(cnt, 0.01*cv2.arcLength(cnt, True), True)
@@ -87,25 +88,30 @@ def cam_frame(data):
 				a3,b3 = box[2][0]+1,box[2][1]+1
 				a4,b4 = box[3][0]+1,box[3][1]-1
 
-				depth = val
-				depth_gen1 = pc2.read_points(depth, field_names = ("x", "y", "z"), skip_nans=False)
-				depth_gen2 = pc2.read_points(depth, field_names = ("x", "y", "z"), skip_nans=False)
-				depth_gen3 = pc2.read_points(depth, field_names = ("x", "y", "z"), skip_nans=False)
-				depth_gen4 = pc2.read_points(depth, field_names = ("x", "y", "z"), skip_nans=False)
+				#depth = val
+				now = time.time()
+				print(now, 'start of ptcloud')
+				cloud_list = list(pc2.read_points(val, field_names = ("x", "y", "z"), skip_nans=False))
+				now = time.time()
+				print(now, 'inter of ptcloud')
 				i1=(640*b1)+a1+1
 				i2=(640*b2)+a2+1
 				i3=(640*b3)+a3+1
 				i4=(640*b4)+a4+1
-				mat1 = list(itertools.islice(depth_gen1, i1, i1+1))
-				mat2 = list(itertools.islice(depth_gen2, i2, i2+1))
-				mat3 = list(itertools.islice(depth_gen3, i3, i3+1))
-				mat4 = list(itertools.islice(depth_gen4, i4, i4+1))
 
-				fx=(mat1[0][0]+mat2[0][0]+mat3[0][0]+mat4[0][0])/4
-				fy=(mat1[0][1]+mat2[0][1]+mat3[0][1]+mat4[0][1])/4
-				fz=(mat1[0][2]+mat2[0][2]+mat3[0][2]+mat4[0][2])/4
+				#now = time.time()
+				#print(now, 'start of ptcloud')
+				mat1 = cloud_list[i1]
+				mat2 = cloud_list[i2]
+				mat3 = cloud_list[i3]
+				mat4 = cloud_list[i4]
+				noww = time.time()
+				print(noww, 'end of ptcloud')
+
+				fx=(mat1[0]+mat2[0]+mat3[0]+mat4[0])/4
+				fy=(mat1[1]+mat2[1]+mat3[1]+mat4[1])/4
+				fz=(mat1[2]+mat2[2]+mat3[2]+mat4[2])/4
 				#print(mat4,b4,a4)
-
 				ps = PointStamped()
 				ps.header.frame_id = "r200link"
 				ps.header.stamp = rospy.Time(0)
@@ -115,7 +121,7 @@ def cam_frame(data):
 				mat = listener.transformPoint("/world", ps)
 				#print(mat)
 
-				if (np.abs(mat1[0][2]-mat2[0][2])<0.3 and np.abs(mat2[0][2]-mat3[0][2])<0.3 and np.abs(mat3[0][2]-mat4[0][2])<0.3 and np.abs(mat1[0][2]-mat4[0][2])<0.3):
+				if (np.abs(mat1[2]-mat2[2])<0.3 and np.abs(mat2[2]-mat3[2])<0.3 and np.abs(mat3[2]-mat4[2])<0.3 and np.abs(mat1[2]-mat4[2])<0.3):
 					#print(mat.point)
 					if(3.0<mat.point.z<3.5):
 						if(3.9<mat.point.x<4.1):
@@ -151,10 +157,11 @@ def cam_frame(data):
 						print(col,'dfsdjfksbdfhjsbfsdjk')
 						frame_list.centers = col
 
-
 	cv2.imshow('image',img)
 	cv2.waitKey(30)
 	pub.publish(frame_list)
+	#now = rospy.get_rostime()
+	#print(now.secs, 'end of callback')
 	#rate.sleep()
 
 
