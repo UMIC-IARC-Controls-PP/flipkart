@@ -95,15 +95,17 @@ class autopilot:
 		if ((nextframex == 0) and (nextframey == 0) and (nextframez == 0)):
 			if self.currentposey < 0:
 				self.mvc.gotopose(self.currentposex, self.currentposey + 1, 3.275)
+				self.mvc.gotopose(self.currentposex - 0.3, self.currentposey, 3.275)
 				print("reexploring")
 				self.explore()
 
 			if self.currentposey > 0:
-				self.mvc.gotopose(self.currentposex, self.currentposey - 1, 3.275)
+				self.mvc.gotopose(self.currentposex, self.currentposey - 1.5, 3.275)
+				self.mvc.gotopose(self.currentposex - 0.3, self.currentposey, 3.275)
 				print("reexploring")
 				self.explore()
 		else:
-			self.mvc.gotopose(nextframex - 0.5, nextframey, nextframez)
+			self.mvc.gotopose(nextframex - 0.5, nextframey, 3.275)
 			print("No need to reexplore")
 
 
@@ -137,15 +139,22 @@ def main():
 	mvc.setarm(1)
 	time.sleep(2)
 	mvc.offboard()
-	mvc.gotopose(0, 0, 3.275)
+	mvc.gotopose(2, 0, 3.275)
+	time.sleep(1)
+	mvc.gotopose(3, 1, 3.275)
+	time.sleep(10)
+	mvc.gotopose(3, -1, 3.275)
+	time.sleep(5)
+	mvc.gotopose(2, 0, 3.275)
+
 	i = 0
 	while i < 15:
 		atplt.explore()
 		atplt.getFrameNum()
-		mvc.gotopose(atplt.wplist[i].x - 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
-		mvc.gotopose(atplt.wplist[i].x, atplt.wplist[i].y, atplt.wplist[i].z)
+		mvc.gotopose(atplt.wplist[i].x - 0.5, atplt.wplist[i].y, 3.275)
+		mvc.gotopose(atplt.wplist[i].x, atplt.wplist[i].y, 3.275)
 		atplt.incrementCurrentFrame()
-		mvc.gotopose(atplt.wplist[i].x + 0.5, atplt.wplist[i].y, atplt.wplist[i].z)
+		mvc.gotopose(atplt.wplist[i].x + 0.3, atplt.wplist[i].y, 3.275)
 		print("Passed through frame ", atplt.currentframe)
 		atplt.currentframe += 1
 		i += 1
