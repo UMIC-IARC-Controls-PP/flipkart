@@ -10,7 +10,7 @@ from mavros_msgs.msg import *
 from mavros_msgs.srv import *
 from utils.offboard import mavcon
 import numpy as np
-import pcl
+#import pcl
 #import pcl_helper
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -94,16 +94,16 @@ class autopilot:
 		
 		if ((nextframex == 0) and (nextframey == 0) and (nextframez == 0)):
 			if self.currentposey < 0:
-				self.mvc.gotopose(self.currentposex, self.currentposey + 1, 3.275)
-				self.mvc.gotopose(self.currentposex - 0.3, self.currentposey, 3.275)
+				self.mvc.gotopose(self.currentposex, 1.5, 3.275)
+				self.mvc.gotopose(self.currentposex - 0.5, self.currentposey, 3.275)
+				self.mvc.gotopose(self.currentposex + 0.5, self.currentposey, 3.275)
 				print("reexploring")
-				self.explore()
 
 			if self.currentposey > 0:
-				self.mvc.gotopose(self.currentposex, self.currentposey - 1.5, 3.275)
-				self.mvc.gotopose(self.currentposex - 0.3, self.currentposey, 3.275)
+				self.mvc.gotopose(self.currentposex, -1.5, 3.275)
+				self.mvc.gotopose(self.currentposex - 0.5, self.currentposey, 3.275)
+				self.mvc.gotopose(self.currentposex + 0.5, self.currentposey, 3.275)
 				print("reexploring")
-				self.explore()
 		else:
 			self.mvc.gotopose(nextframex - 0.5, nextframey, 3.275)
 			print("No need to reexplore")
@@ -139,13 +139,17 @@ def main():
 	mvc.setarm(1)
 	time.sleep(2)
 	mvc.offboard()
-	mvc.gotopose(2, 0, 3.275)
-	time.sleep(1)
-	mvc.gotopose(3, 1, 3.275)
-	time.sleep(10)
-	mvc.gotopose(3, -1, 3.275)
+	mvc.gotopose(0.0, 0.0, 3.275)
+	mvc.gotopose(2.0, 0.0, 3.275)
+	mvc.gotopose(2.5, 0.0, 3.275)
 	time.sleep(5)
-	mvc.gotopose(2, 0, 3.275)
+	# mvc.gotopose(2.5, 1.0, 3.275)
+	# time.sleep(5)
+	# mvc.gotopose(2.5, 0.0, 3.275)
+	# mvc.gotopose(2.5, -1.0, 3.275)
+	# time.sleep(5)
+	# mvc.gotopose(2.5, 0.0, 3.275)
+
 
 	i = 0
 	while i < 15:
@@ -154,8 +158,9 @@ def main():
 		mvc.gotopose(atplt.wplist[i].x - 0.5, atplt.wplist[i].y, 3.275)
 		mvc.gotopose(atplt.wplist[i].x, atplt.wplist[i].y, 3.275)
 		atplt.incrementCurrentFrame()
-		mvc.gotopose(atplt.wplist[i].x + 0.3, atplt.wplist[i].y, 3.275)
+		mvc.gotopose(atplt.wplist[i].x + 0.5, atplt.wplist[i].y, 3.275)
 		print("Passed through frame ", atplt.currentframe)
+		time.sleep(3)
 		atplt.currentframe += 1
 		i += 1
 
